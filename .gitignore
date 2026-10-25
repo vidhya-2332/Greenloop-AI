@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# User data and local backups / fixtures
+/data/
+/static/uploads/
+/uploads/
+/test_assets/
+/backup_pre_upgrade/
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+/models/*.onnx
+!/models/waste_mobilenetv2.onnx
+/models/imagenet_classes.txt

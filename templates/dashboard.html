@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Sustainability Dashboard – GreenLoop AI{% endblock %}
+
+{% block content %}
+<section class="dashboard-page">
+    <div class="container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header-flex">
+            <div>
+                <span class="section-badge"><i class="fa-solid fa-chart-pie"></i> Local Impact Audit</span>
+                <h1 class="dashboard-title">Activity & Points Dashboard</h1>
+                <p class="dashboard-subtitle">
+                    A summary of activities users have recorded in this browser's local SQLite database. Records are not independently verified.
+                </p>
+            </div>
+            <div class="dashboard-cta">
+                <a href="{{ url_for('home') }}#analyzer" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Upcycle New Item
+                </a>
+            </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card highlight-kpi">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-dumpster-fire"></i>
+                </div>
+                <div class="kpi-data">
+                    <span class="kpi-num" id="totalDivertedCount">{{ stats.total_diverted }}</span>
+                    <span class="kpi-label">Logged Activities</span>
+                </div>
+            </div>
+
+            <div class="kpi-card highlight-kpi points-kpi-card">
+                <div class="kpi-icon text-green">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div class="kpi-data">
+                    <span class="kpi-num text-green" id="totalPointsCount">{{ stats.total_points }}</span>
+                    <span class="kpi-label">Gamification Points</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon text-green">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div class="kpi-data">
+                    <span class="kpi-val">{{ stats.most_active_category|capitalize }}</span>
+                    <span class="kpi-label">Most Active Category</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon text-blue">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div class="kpi-data">
+                    <span class="kpi-val">SQLite Local</span>
+                    <span class="kpi-label">Database Storage</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon text-amber">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div class="kpi-data">
+                    <span class="kpi-val">Not calculated</span>
+                    <span class="kpi-label">Carbon savings</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown Progress Bars -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fa-solid fa-layer-group"></i> Logged Activities by Material</h3>
+                <span class="panel-tag">{{ stats.total_activities }} Logged Activities</span>
+            </div>
+            <div class="breakdown-grid">
+                {% for cat_id, cat in categories.items() %}
+                {% set count = stats.category_counts.get(cat_id, 0) %}
+                {% set pct = stats.category_percentages.get(cat_id, 0) %}
+                <div class="stream-item">
+                    <div class="stream-meta">
+                        <span class="stream-name">
+                            <i class="fa-solid {{ categories[cat_id].icon }}" style="color: {{ categories[cat_id].color }};"></i>
+                            {{ categories[cat_id].name_en }}
+                        </span>
+                        <span class="stream-nums"><strong>{{ count }}</strong> activities ({{ pct }}%) · {{ stats.category_points.get(cat_id, 0) }} pts</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: {{ pct }}%; background-color: {{ categories[cat_id].color }};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fa-solid fa-medal"></i> Activity Milestones</h3>
+                <span class="panel-tag">{{ stats.total_activities }} total</span>
+            </div>
+            <p>Milestones count saved activity records. Points are for fun and do not measure environmental savings.</p>
+            {% if stats.achievements %}<p><strong>Earned:</strong> {{ stats.achievements|join(', ') }}</p>{% endif %}
+            {% if stats.next_achievement %}
+            <p>Next: {{ stats.next_achievement.name }} at {{ stats.next_achievement.threshold }} activities ({{ stats.next_achievement_progress }}% progress)</p>
+            <div class="progress-bar-bg" role="progressbar" aria-valuenow="{{ stats.next_achievement_progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Next milestone progress">
+                <div class="progress-bar-fill" style="width: {{ stats.next_achievement_progress }}%;"></div>
+            </div>
+            {% else %}<p>All listed milestones earned.</p>{% endif %}
+        </div>
+
+        <!-- Academic Audit & Transparency Statement -->
+        <div class="audit-statement-card">
+            <i class="fa-solid fa-circle-check"></i>
+            <div>
+                <h4>Academic Environmental Audit Notice</h4>
+                <p>Counts reflect saved user-entered activity records. Green Impact Points are a game score. The app does not verify reuse, landfill diversion, or carbon savings.</p>
+            </div>
+        </div>
+
+        <!-- Recorded Activities Log Table -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fa-solid fa-list-check"></i> Logged Upcycling Activities</h3>
+                <span class="panel-tag">{{ activities|length }} Records</span>
+            </div>
+
+            {% if activities %}
+            <div class="table-responsive">
+                <table class="activities-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date & Time</th>
+                            <th>Category</th>
+                            <th>Item Entered</th>
+                            <th>Project Logged</th>
+                            <th>Gamification Points</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activitiesTableBody">
+                        {% for act in activities %}
+                        <tr id="activityRow-{{ act.id }}">
+                            <td class="row-num">{{ loop.index }}</td>
+                            <td class="row-date">{{ act.created_at }}</td>
+                            <td>
+                                <span class="badge badge-{{ act.category }}">{{ act.category|capitalize }}</span>
+                            </td>
+                            <td class="row-item">
+                                <strong>{{ act.item_name }}</strong>
+                            </td>
+                            <td class="row-project">
+                                <i class="fa-solid fa-wrench text-green"></i> {{ act.project_name }}
+                            </td>
+                            <td class="row-points">
+                                <span class="badge badge-points"><i class="fa-solid fa-star"></i> +{{ act.impact_points or 50 }} Pts</span>
+                            </td>
+                            <td class="row-notes">
+                                {{ act.notes or '<span class="text-muted">—</span>'|safe }}
+                            </td>
+                            <td>
+                                <button type="button" class="btn-action-delete" onclick="deleteActivity({{ act.id }})" title="Remove Record">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <h3>No Upcycle Activities Recorded Yet</h3>
+                <p>When you complete a project from the waste analyzer, log it to see your diversion metrics populate here.</p>
+                <a href="{{ url_for('home') }}#analyzer" class="btn btn-primary mt-3">
+                    <i class="fa-solid fa-camera"></i> Upcycle Your First Waste Item
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,7 @@
+can
+glass
+organic
+other
+paper
+plastic_bottle
+plastic_other

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: greenloop-ai
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements-production.txt
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 60 app:app
+    healthCheckPath: /
+    disk:
+      name: greenloop-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: GREENLOOP_DB_PATH
+        value: /var/data/greenloop.db
+      - key: GREENLOOP_UPLOAD_FOLDER
+        value: /var/data/uploads
+      - key: GREENLOOP_SECRET_KEY
+        generateValue: true
+      - key: GREENLOOP_HTTPS
+        value: "1"

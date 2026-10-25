@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}GreenLoop AI – Local Waste-to-Value Assistant{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section" id="hero">
+    <div class="container hero-container">
+        <div class="hero-content">
+            <div class="hero-pill">
+                <i class="fa-solid fa-seedling"></i> Local Waste-to-Value Assistant
+            </div>
+            <h1 class="hero-title">
+                Turn Everyday Waste into <span class="gradient-text">Practical Value</span>
+            </h1>
+            <p class="hero-subtitle">
+                Upload a photo for a local visual suggestion, or choose the category yourself. The model recognizes general objects, so confirm or change its suggestion. Filename and description keywords are fallback hints. Guides are available in <strong>English & தமிழ்</strong>.
+            </p>
+            <div class="hero-actions">
+                <a href="#analyzer" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-camera"></i> Analyze Waste Now
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline btn-lg">
+                    <i class="fa-solid fa-chart-line"></i> View Dashboard
+                </a>
+            </div>
+
+            <!-- Factual Impact Metrics Bar -->
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <span class="stat-num">{{ stats.total_diverted }}</span>
+                    <span class="stat-label">Activities Logged</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num text-green">{{ stats.total_points }}</span>
+                    <span class="stat-label">Green Impact Points</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">5</span>
+                    <span class="stat-label">Core Waste Streams</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">EN + TA</span>
+                    <span class="stat-label">Bilingual Guidance</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="eco-circle-card">
+                <div class="eco-badge top-right">
+                    <i class="fa-solid fa-bottle-water"></i> Plastic
+                </div>
+                <div class="eco-badge top-left">
+                    <i class="fa-solid fa-newspaper"></i> Paper
+                </div>
+                <div class="eco-badge bottom-right">
+                    <i class="fa-solid fa-wine-bottle"></i> Glass
+                </div>
+                <div class="eco-badge bottom-left">
+                    <i class="fa-solid fa-can-food"></i> Metal
+                </div>
+                <div class="circle-center">
+                    <i class="fa-solid fa-recycle rotate-icon"></i>
+                    <h3>Zero Waste Loop</h3>
+                    <p>Reduce &bull; Upcycle &bull; Safely Recycle</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Waste Photo Analyzer Section -->
+<section class="analyzer-section" id="analyzer">
+    <div class="container">
+        <div class="section-header text-center">
+            <span class="section-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Step 1: Upload & Select</span>
+            <h2 class="section-title">Waste Photo & Category Analyzer</h2>
+            <p class="section-desc">
+                Upload a clear photo, then choose its material if the filename or description does not suggest one.
+            </p>
+        </div>
+
+        <div class="analyzer-wrapper">
+            <form action="{{ url_for('analyze_waste') }}" method="POST" enctype="multipart/form-data" class="analyzer-form" id="analyzerForm">
+                <!-- Dropzone for image -->
+                <div class="upload-dropzone" id="dropzone">
+                    <input type="file" name="waste_image" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/webp" class="file-input">
+                    <div class="dropzone-content" id="dropzonePrompt">
+                        <div class="upload-icon-circle">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3>Drag & drop your waste photo here</h3>
+                        <p>or <span class="browse-link">browse files</span> from your computer or phone</p>
+                        <span class="file-hint">Supported: JPG, PNG, WEBP &bull; Max size: 32MB &bull; Up to 60 megapixels</span>
+                    </div>
+
+                    <!-- Live Image Preview -->
+                    <div class="preview-container hidden" id="previewContainer">
+                        <img id="imagePreview" src="#" alt="Waste preview" class="preview-img">
+                        <button type="button" class="btn btn-sm btn-danger preview-remove-btn" id="removeImageBtn">
+                            <i class="fa-solid fa-trash"></i> Remove Photo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category Selector -->
+                <div class="category-selection-block">
+                    <label class="form-label">
+                        <i class="fa-solid fa-layer-group"></i> Material Category (Optional - confirm or change the visual suggestion):
+                    </label>
+                    <div class="category-pill-grid">
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="" checked>
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Suggest
+                            </span>
+                        </label>
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="plastic">
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-bottle-water"></i> Plastic
+                            </span>
+                        </label>
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="paper">
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-newspaper"></i> Paper / Cardboard
+                            </span>
+                        </label>
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="glass">
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-wine-bottle"></i> Glass
+                            </span>
+                        </label>
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="metal">
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-can-food"></i> Metal Can / Tin
+                            </span>
+                        </label>
+                        <label class="cat-choice-pill">
+                            <input type="radio" name="category" value="organic">
+                            <span class="pill-inner">
+                                <i class="fa-solid fa-apple-whole"></i> Organic / Kitchen
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Item Description Input -->
+                <div class="form-group">
+                    <label for="itemDescription" class="form-label">
+                        <i class="fa-solid fa-tag"></i> Item Name or Description (Optional):
+                    </label>
+                    <input type="text" id="itemDescription" name="item_description" class="form-control" placeholder="e.g., 1L water bottle, cardboard shoe box, tomato sauce jar...">
+                    <small class="form-help">Tip: Providing a name helps the heuristic classifier pinpoint the best project.</small>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="analyzer-actions">
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze & Generate Upcycling Projects
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Supported Categories Grid -->
+<section class="categories-section" id="categories">
+    <div class="container">
+        <div class="section-header text-center">
+            <span class="section-badge"><i class="fa-solid fa-boxes-stacked"></i> Materials Knowledge Base</span>
+            <h2 class="section-title">Supported Waste Streams</h2>
+            <p class="section-desc">
+                Explore illustrative litter persistence estimates and practical ways to reuse materials. Actual breakdown varies by item and conditions; these are not landfill measurements.
+            </p>
+        </div>
+
+        <div class="category-cards-grid">
+            {% for cat_id, cat in categories.items() %}
+            <div class="waste-cat-card" style="--cat-accent: {{ cat.color }};">
+                <div class="cat-card-header">
+                    <div class="cat-icon-badge">
+                        <i class="fa-solid {{ cat.icon }}"></i>
+                    </div>
+                    <div class="cat-names">
+                        <h3 class="cat-title-en">{{ cat.name_en }}</h3>
+                        <span class="cat-title-ta">{{ cat.name_ta }}</span>
+                    </div>
+                </div>
+
+                <div class="cat-card-body">
+                    <div class="cat-metric">
+                        <span class="metric-title"><i class="fa-solid fa-clock-rotate-left"></i> Estimated persistence / breakdown:</span>
+                        <strong class="metric-val">{{ cat.decomposition_time }}</strong>
+                    </div>
+
+                    <p class="cat-summary">{{ cat.summary_en }}</p>
+
+                    <div class="common-items-tags">
+                        <span class="tags-label">Common items:</span>
+                        {% for item in cat.common_items[:3] %}
+                        <span class="item-tag">{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="cat-card-footer">
+                    <form action="{{ url_for('analyze_waste') }}" method="POST">
+                        <input type="hidden" name="category" value="{{ cat_id }}">
+                        <input type="hidden" name="item_description" value="{{ cat.common_items[0] }}">
+                        <button type="submit" class="btn btn-outline btn-sm btn-block">
+                            Explore Projects ({{ cat.upcycling_projects|length }}) <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Safe Disposal Protocol Section -->
+<section class="disposal-section" id="disposal-rules">
+    <div class="container">
+        <div class="section-header text-center">
+            <span class="section-badge"><i class="fa-solid fa-triangle-exclamation"></i> Safety First</span>
+            <h2 class="section-title">When NOT to Upcycle: Safe Disposal Guidance</h2>
+            <p class="section-desc">
+                Not all waste can be safely reused. Follow these environmental safety protocols when upcycling is hazardous.
+            </p>
+        </div>
+
+        <div class="safety-grid">
+            <div class="safety-card warning">
+                <div class="safety-card-icon">
+                    <i class="fa-solid fa-biohazard"></i>
+                </div>
+                <h3>Hazardous & Chemical Containers</h3>
+                <p>Never upcycle containers that held pesticides, automotive oils, paint thinners, or harsh industrial acids into household planters or food storage.</p>
+                <div class="safety-action">
+                    <strong>Protocol:</strong> Deliver to specialized municipal hazardous waste collection depots.
+                </div>
+            </div>
+
+            <div class="safety-card warning">
+                <div class="safety-card-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3>Broken & Chipped Glassware</h3>
+                <p>Shattered glass poses serious injury risks to sanitation workers and cannot be recycled with regular container glass due to different melt points.</p>
+                <div class="safety-action">
+                    <strong>Protocol:</strong> Wrap securely in multiple layers of newspaper, tape firmly, and label "DANGER: BROKEN GLASS".
+                </div>
+            </div>
+
+            <div class="safety-card warning">
+                <div class="safety-card-icon">
+                    <i class="fa-solid fa-pizza-slice"></i>
+                </div>
+                <h3>Contaminated Paper & Pizza Boxes</h3>
+                <p>Cardboard soaked in food oil or cheese cannot be re-pulped in paper recycling facilities because oil prevents paper fiber bonding.</p>
+                <div class="safety-action">
+                    <strong>Protocol:</strong> Cut away clean ungreased sections for recycling; compost non-printed oily parts in compost pits.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AI & Engineering Transparency Section -->
+<section class="transparency-section" id="transparency">
+    <div class="container">
+        <div class="transparency-card">
+            <div class="transparency-header">
+                <div class="transparency-badge">
+                    <i class="fa-solid fa-microchip"></i> Academic & Technical Disclosure
+                </div>
+                <h2>System Architecture & AI Disclosure</h2>
+                <p class="transparency-sub">
+                    In college and academic evaluations, honesty regarding machine learning integration is paramount. Here is exactly how GreenLoop AI functions under the hood:
+                </p>
+            </div>
+
+            <div class="transparency-grid">
+                <div class="t-box">
+                    <div class="t-box-header">
+                        <i class="fa-solid fa-file-shield text-green"></i>
+                        <h4>1. Image Verification (Pillow)</h4>
+                    </div>
+                    <p>
+                        Pillow checks that an uploaded file is a supported, readable image. This validates the file itself, not the waste material shown in its pixels.
+                    </p>
+                </div>
+
+                <div class="t-box">
+                    <div class="t-box-header">
+                        <i class="fa-solid fa-code-branch text-green"></i>
+                        <h4>2. Local Visual Suggestion</h4>
+                    </div>
+                    <p>
+                        A local waste-trained MobileNetV2 model analyzes the photo pixels and suggests one of the supported material streams. Results are suggestions, so please confirm them. If the model is unavailable, GreenLoop uses clearly labelled description or filename hints instead.
+                    </p>
+                </div>
+
+                <div class="t-box">
+                    <div class="t-box-header">
+                        <i class="fa-solid fa-plug-circle-bolt text-green"></i>
+                        <h4>3. No image-recognition claim</h4>
+                    </div>
+                    <p>
+                        A waste-specific MobileNetV2 model is included for offline photo suggestions. It works best when one waste item is clear, centered, and fills a well-lit photo. It can still make mistakes; please confirm the result before following disposal guidance.
+                    </p>
+                </div>
+
+                <div class="t-box">
+                    <div class="t-box-header">
+                        <i class="fa-solid fa-database text-green"></i>
+                        <h4>4. User-entered SQLite activity log</h4>
+                    </div>
+                    <p>
+                        The dashboard summarizes activities users record in the local SQLite database. These records are not independently verified, and points are gamification only; the app does not calculate carbon savings.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Community Impact Activity -->
+{% if recent_activities %}
+<section class="recent-activities-section">
+    <div class="container">
+        <div class="section-header text-center">
+            <span class="section-badge"><i class="fa-solid fa-clock-rotate-left"></i> Community Progress</span>
+            <h2 class="section-title">Recently Diverted Items</h2>
+        </div>
+
+        <div class="recent-grid">
+            {% for act in recent_activities %}
+            <div class="recent-act-card">
+                <div class="recent-act-top">
+                    <span class="badge badge-{{ act.category }}">{{ act.category|capitalize }}</span>
+                    <span class="badge badge-points"><i class="fa-solid fa-star"></i> +{{ act.impact_points or 50 }} Pts</span>
+                    <span class="act-date">{{ act.created_at[:10] }}</span>
+                </div>
+                <h4 class="act-item-title">{{ act.item_name }}</h4>
+                <p class="act-project-name"><i class="fa-solid fa-wrench"></i> {{ act.project_name }}</p>
+                {% if act.notes %}
+                <p class="act-notes">"{{ act.notes }}"</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">
+                <i class="fa-solid fa-list-check"></i> View Full Sustainability Dashboard
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+

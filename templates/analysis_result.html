@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}Waste Analysis: {{ category.name_en if category else 'Unknown Material' }} – GreenLoop AI{% endblock %}
+
+{% block content %}
+<section class="analysis-results-page">
+    <div class="container">
+        <!-- Back Navigation & Breadcrumb -->
+        <div class="breadcrumb-bar">
+            <a href="{{ url_for('home') }}" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Back to Waste Analyzer
+            </a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-curr">{{ category.name_en if category else 'Unknown Material' }}</span>
+        </div>
+
+        <!-- Quick Material Stream Switcher -->
+        <div class="stream-quick-bar">
+            <span class="stream-bar-label"><i class="fa-solid fa-layer-group"></i> Material Streams:</span>
+            <div class="stream-pills">
+                {% for cat_id, cat_obj in all_categories.items() %}
+                <form action="{{ url_for('analyze_waste') }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="category" value="{{ cat_id }}">
+                    <input type="hidden" name="item_description" value="{{ cat_obj.common_items[0] }}">
+                    <input type="hidden" name="existing_image_path" value="{{ image_path or '' }}">
+                    <button type="submit" class="stream-nav-pill {% if category and cat_id == category.id %}active{% endif %}">
+                        <i class="fa-solid {{ cat_obj.icon }}"></i> {{ cat_obj.name_en }}
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if not category %}
+        <!-- UNKNOWN CATEGORY ADVISORY & SELECTION VIEW -->
+        <div class="result-summary-card unknown-summary-card">
+            <div class="summary-grid">
+                {% if image_path %}
+                <div class="summary-img-col">
+                    <img src="{{ url_for('uploaded_file', filename=image_path[8:]) }}" alt="Uploaded Waste Item" class="analyzed-img">
+                    <span class="verified-pill">
+                        <i class="fa-solid fa-file-image"></i> Image File Verified (Pillow)
+                    </span>
+                    <small class="verified-subtext">Pillow verifies the image file. A local model may suggest a category from its pixels, but does not verify the material.</small>
+                </div>
+                {% endif %}
+
+                <div class="summary-details-col">
+                    <div class="summary-badges">
+                        <span class="badge badge-warning"><i class="fa-solid fa-circle-question"></i> Category Not Detected</span>
+                        <span class="badge badge-detection"><i class="fa-solid fa-shield-halved"></i> {{ detection_method }}</span>
+                    </div>
+
+                    <h1 class="result-heading">Unknown Material — Please select a category</h1>
+                    <h2 class="result-tamil-heading">அடையாளம் காணப்படாத கழிவுப்பொருள்</h2>
+
+                    <div class="unknown-notice-box">
+                        <div class="notice-icon"><i class="fa-solid fa-circle-info"></i></div>
+                        <div class="notice-content">
+                            <h4>Why is the category marked as Unknown?</h4>
+                            <p>
+                                {% if detection_method == 'Image Model Unavailable' %}
+                                The local image model is unavailable, so GreenLoop could not analyze this photo's pixels. Pillow validates the image file but does not classify its contents.
+                                {% elif detection_method == 'Image Model Uncertain' %}
+                                The waste photo model could not make a sufficiently supported category suggestion. Try a sharper, brighter photo with one item centered and filling most of the frame, or select the category yourself.
+                                {% else %}
+                                There is no image-model result for this request. Pillow validates the image file but does not classify its contents.
+                                {% endif %}
+                            </p>
+                            <p>
+                                If a model result is unavailable, GreenLoop can use recognizable words in the description or filename as a clearly labeled heuristic. No reliable visual or text suggestion was available, so please choose the category yourself.
+                            </p>
+                            <p class="highlight-prompt">
+                                👉 <strong>Please select the correct waste category below to unlock its upcycling guides:</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Picker Cards Grid -->
+        <div class="unknown-picker-section">
+            <div class="section-header text-center">
+                <span class="section-badge"><i class="fa-solid fa-hand-pointer"></i> Step 2: Choose Your Material</span>
+                <h2 class="section-title">Select Your Waste Material Stream</h2>
+                <p class="section-desc">Click the category that matches your item to view step-by-step upcycling recipes and disposal guidance:</p>
+            </div>
+
+            <div class="category-cards-grid">
+                {% for cat_id, cat in all_categories.items() %}
+                <div class="waste-cat-card" style="--cat-accent: {{ cat.color }};">
+                    <div class="cat-card-header">
+                        <div class="cat-icon-badge">
+                            <i class="fa-solid {{ cat.icon }}"></i>
+                        </div>
+                        <div class="cat-names">
+                            <h3 class="cat-title-en">{{ cat.name_en }}</h3>
+                            <span class="cat-title-ta">{{ cat.name_ta }}</span>
+                        </div>
+                    </div>
+
+                    <div class="cat-card-body">
+                        <div class="cat-metric">
+                            <span class="metric-title"><i class="fa-solid fa-clock-rotate-left"></i> Estimated persistence / breakdown:</span>
+                            <strong class="metric-val">{{ cat.decomposition_time }}</strong>
+                        </div>
+
+                        <p class="cat-summary">{{ cat.summary_en }}</p>
+
+                        <div class="common-items-tags">
+                            <span class="tags-label">Common items:</span>
+                            {% for item in cat.common_items[:3] %}
+                            <span class="item-tag">{{ item }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="cat-card-footer">
+                        <form action="{{ url_for('analyze_waste') }}" method="POST">
+                            <input type="hidden" name="category" value="{{ cat_id }}">
+                            <input type="hidden" name="item_description" value="{{ cat.common_items[0] }}">
+                            <input type="hidden" name="existing_image_path" value="{{ image_path or '' }}">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa-solid fa-arrow-right"></i> Select {{ cat.name_en }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% else %}
+        <!-- KNOWN CATEGORY ANALYSIS SUMMARY & UPCYCLING VIEW -->
+        <div class="result-summary-card">
+            <div class="summary-grid">
+                {% if image_path %}
+                <div class="summary-img-col">
+                    <img src="{{ url_for('uploaded_file', filename=image_path[8:]) }}" alt="Uploaded Waste Item" class="analyzed-img">
+                    <span class="verified-pill">
+                        <i class="fa-solid fa-file-image"></i> Image File Verified (Pillow)
+                    </span>
+                    <small class="verified-subtext">Pillow checks image format and integrity. The displayed model suggestion, when present, is based on image pixels and may be wrong.</small>
+                </div>
+                {% endif %}
+
+                <div class="summary-details-col">
+                    <div class="summary-badges">
+                        <span class="badge badge-{{ category.id }}"><i class="fa-solid {{ category.icon }}"></i> {{ category.name_en }}</span>
+                        <span class="badge badge-detection"><i class="fa-solid fa-microchip"></i> {{ detection_method }}</span>
+                    </div>
+
+                    <h1 class="result-heading">{{ item_name or category.name_en }}</h1>
+                    <h2 class="result-tamil-heading">{{ category.name_ta }}</h2>
+
+                    <p class="result-desc-en">{{ category.summary_en }}</p>
+                    <p class="result-desc-ta">{{ category.summary_ta }}</p>
+
+                    <div class="result-meta-row">
+                        <div class="meta-item">
+                            <span class="meta-label"><i class="fa-solid fa-clock-rotate-left"></i> Estimated persistence / breakdown:</span>
+                            <span class="meta-value">{{ category.decomposition_time }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label"><i class="fa-solid fa-lightbulb"></i> Upcycling Projects:</span>
+                            <span class="meta-value">{{ category.upcycling_projects|length }} Practical Guides</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bilingual Control Switcher -->
+        <div class="lang-switch-container">
+            <div class="lang-switch-label">
+                <i class="fa-solid fa-language"></i> Instructions Language / வழிகாட்டி மொழி:
+            </div>
+            <div class="lang-tabs">
+                <button type="button" class="lang-btn active" data-lang="en" id="langBtnEn">
+                    🇬🇧 English
+                </button>
+                <button type="button" class="lang-btn" data-lang="ta" id="langBtnTa">
+                    🇮🇳 தமிழ் (Tamil)
+                </button>
+            </div>
+        </div>
+
+        <!-- Upcycling Projects Section -->
+        <div class="projects-section">
+            <div class="section-header text-left">
+                <span class="section-badge"><i class="fa-solid fa-hammer"></i> Practical Value</span>
+                <h2 class="section-title">Upcycling Projects for {{ category.name_en }}</h2>
+                <p class="section-desc">
+                    Select a project below for required materials, step-by-step assembly, and safety precautions.
+                </p>
+            </div>
+
+            <div class="projects-list">
+                {% for proj in category.upcycling_projects %}
+                <div class="project-card" id="{{ proj.id }}">
+                    <div class="project-header">
+                        <div class="proj-title-wrap">
+                            <!-- English Title -->
+                            <h3 class="proj-title lang-content lang-en">{{ proj.title_en }}</h3>
+                            <!-- Tamil Title -->
+                            <h3 class="proj-title lang-content lang-ta hidden">{{ proj.title_ta }}</h3>
+
+                            <div class="proj-meta-pills">
+                                <span class="proj-pill difficulty-pill">
+                                    <i class="fa-solid fa-gauge"></i> 
+                                    <span class="lang-content lang-en">{{ proj.difficulty }}</span>
+                                    <span class="lang-content lang-ta hidden">{{ proj.difficulty_ta }}</span>
+                                </span>
+                                <span class="proj-pill time-pill">
+                                    <i class="fa-solid fa-stopwatch"></i> {{ proj.time_required }}
+                                </span>
+                                <span class="proj-pill points-pill">
+                                    <i class="fa-solid fa-star"></i> +{{ proj.points or 50 }} Pts
+                                </span>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary btn-sm log-trigger-btn"
+                                data-category="{{ category.id }}"
+                                data-item="{{ item_name or category.name_en }}"
+                                data-project="{{ proj.title_en }}"
+                                data-points="{{ proj.points or 50 }}"
+                                data-image="{{ image_path or '' }}">
+                            <i class="fa-solid fa-circle-check"></i> I Made This! Log Impact
+                        </button>
+                    </div>
+
+                    <div class="project-body">
+                        <!-- Materials Checklist -->
+                        <div class="proj-materials-box">
+                            <h4>
+                                <i class="fa-solid fa-list-check"></i>
+                                <span class="lang-content lang-en">Materials Needed:</span>
+                                <span class="lang-content lang-ta hidden">தேவையான பொருட்கள்:</span>
+                            </h4>
+                            <!-- English Materials -->
+                            <ul class="materials-list lang-content lang-en">
+                                {% for mat in proj.materials_en %}
+                                <li><i class="fa-solid fa-square-check text-green"></i> {{ mat }}</li>
+                                {% endfor %}
+                            </ul>
+                            <!-- Tamil Materials -->
+                            <ul class="materials-list lang-content lang-ta hidden">
+                                {% for mat in proj.materials_ta %}
+                                <li><i class="fa-solid fa-square-check text-green"></i> {{ mat }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <!-- Step-by-Step Instructions -->
+                        <div class="proj-steps-box">
+                            <h4>
+                                <i class="fa-solid fa-shoe-prints"></i>
+                                <span class="lang-content lang-en">Step-by-Step Instructions:</span>
+                                <span class="lang-content lang-ta hidden">படி முறை வழிகாட்டல்:</span>
+                            </h4>
+                            <!-- English Steps -->
+                            <ol class="steps-list lang-content lang-en">
+                                {% for step in proj.steps_en %}
+                                <li>
+                                    <span class="step-num">{{ loop.index }}</span>
+                                    <div class="step-text">{{ step }}</div>
+                                </li>
+                                {% endfor %}
+                            </ol>
+                            <!-- Tamil Steps -->
+                            <ol class="steps-list lang-content lang-ta hidden">
+                                {% for step in proj.steps_ta %}
+                                <li>
+                                    <span class="step-num">{{ loop.index }}</span>
+                                    <div class="step-text">{{ step }}</div>
+                                </li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+
+                        <!-- Safety Tip -->
+                        <div class="safety-tip-box">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <div>
+                                <strong>
+                                    <span class="lang-content lang-en">Safety Caution:</span>
+                                    <span class="lang-content lang-ta hidden">பாதுகாப்பு குறிப்பு:</span>
+                                </strong>
+                                <span class="lang-content lang-en">{{ proj.safety_tip_en }}</span>
+                                <span class="lang-content lang-ta hidden">{{ proj.safety_tip_ta }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Safe Recycling & Disposal Section -->
+        <div class="disposal-guidance-card">
+            <div class="disposal-card-header">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                    <h3 class="lang-content lang-en">Safe Disposal & Municipal Guidance (When Reuse is Unsuitable)</h3>
+                    <h3 class="lang-content lang-ta hidden">மறுசுழற்சி மற்றும் பாதுகாப்பான அப்புறப்படுத்தல் வழிகாட்டுதல்</h3>
+                    <p class="lang-content lang-en">If your item is broken, contaminated, or unsuitable for upcycling, follow these steps:</p>
+                    <p class="lang-content lang-ta hidden">பொருட்கள் சேதமடைந்தாலோ அல்லது மறுபயன்பாட்டிற்கு தகுதியற்றதாக இருந்தாலோ பின்பற்றவும்:</p>
+                </div>
+            </div>
+
+            <div class="disposal-grid">
+                <div class="disposal-col unsuitable-col">
+                    <h4>
+                        <i class="fa-solid fa-ban text-red"></i>
+                        <span class="lang-content lang-en">Do NOT Upcycle If:</span>
+                        <span class="lang-content lang-ta hidden">மறுபயன்பாடு செய்யக்கூடாத சூழ்நிலைகள்:</span>
+                    </h4>
+                    <ul class="disposal-checklist lang-content lang-en">
+                        {% for item in category.disposal_guidance.unsuitable_reasons_en %}
+                        <li><i class="fa-solid fa-xmark text-red"></i> {{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    <ul class="disposal-checklist lang-content lang-ta hidden">
+                        {% for item in category.disposal_guidance.unsuitable_reasons_ta %}
+                        <li><i class="fa-solid fa-xmark text-red"></i> {{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="disposal-col steps-col">
+                    <h4>
+                        <i class="fa-solid fa-recycle text-green"></i>
+                        <span class="lang-content lang-en">Safe Municipal Disposal Protocol:</span>
+                        <span class="lang-content lang-ta hidden">பாதுகாப்பான அப்புறப்படுத்தும் வழிமுறைகள்:</span>
+                    </h4>
+                    <ul class="disposal-checklist lang-content lang-en">
+                        {% for step in category.disposal_guidance.safe_disposal_steps_en %}
+                        <li><i class="fa-solid fa-check text-green"></i> {{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                    <ul class="disposal-checklist lang-content lang-ta hidden">
+                        {% for step in category.disposal_guidance.safe_disposal_steps_ta %}
+                        <li><i class="fa-solid fa-check text-green"></i> {{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Log Activity Modal -->
+<div class="modal-overlay hidden" id="logActivityModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-seedling text-green"></i> Record Upcycle Activity</h3>
+            <button type="button" class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <form id="activityLogForm" class="modal-form">
+            <input type="hidden" name="category" id="modalCategory" value="{{ category.id if category else '' }}">
+            <input type="hidden" name="image_path" id="modalImagePath" value="{{ image_path or '' }}">
+            <input type="hidden" name="impact_points" id="modalPoints" value="50">
+
+            <div class="modal-points-banner">
+                <i class="fa-solid fa-award text-green"></i>
+                <span>Gamification points: <strong>+<span id="modalPointsDisplay">50</span></strong> awarded when this activity is saved</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Material Category:</label>
+                <input type="text" class="form-control" value="{{ category.name_en if category else '' }}" readonly disabled>
+            </div>
+
+            <div class="form-group">
+                <label for="modalItemName" class="form-label">Item Diverted:</label>
+                <input type="text" id="modalItemName" name="item_name" class="form-control" value="{{ item_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="modalProjectName" class="form-label">Project Completed:</label>
+                <input type="text" id="modalProjectName" name="project_name" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="modalNotes" class="form-label">Notes / Reflection (Optional):</label>
+                <textarea id="modalNotes" name="notes" class="form-control" rows="2" placeholder="e.g., Upcycled with dorm room roommates; placed on study desk."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" id="cancelModalBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveActivityBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Save to Dashboard
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
